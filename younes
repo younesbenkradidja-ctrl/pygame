@@ -1,0 +1,376 @@
+import pygame
+import sys
+import os
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.colors import HexColor
+
+# Initialize Pygame
+pygame.init()
+
+# Screen dimensions
+WIDTH, HEIGHT = 900, 650
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Mer & Soleil - PDF Generator")
+
+# Colors - Mediterranean theme
+COLORS = {
+    "background": HexColor("#F8F4E9"),
+    "dark_blue": HexColor("#1D3557"),
+    "light_blue": HexColor("#457B9D"),
+    "sea_blue": HexColor("#A8DADC"),
+    "sand": HexColor("#E9C46A"),
+    "sunset": HexColor("#E76F51"),
+    "white": HexColor("#FFFFFF"),
+    "text": HexColor("#2D3748"),
+    "button": HexColor("#457B9D"),
+    "button_hover": HexColor("#1D3557"),
+}
+
+# Fonts
+title_font = pygame.font.SysFont("Arial", 36, bold=True)
+header_font = pygame.font.SysFont("Arial", 24, bold=True)
+body_font = pygame.font.SysFont("Arial", 16)
+small_font = pygame.font.SysFont("Arial", 14)
+
+# PDF content
+def create_pdf(path):
+    doc = SimpleDocTemplate(path, pagesize=A4)
+    
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name='CenterTitle', fontSize=18, leading=22, 
+                             alignment=TA_CENTER, spaceAfter=20, textColor=HexColor("#1D3557")))
+    styles.add(ParagraphStyle(name='SectionHeader', fontSize=14, leading=18, 
+                             spaceAfter=12, spaceBefore=12, textColor=HexColor("#457B9D")))
+    styles.add(ParagraphStyle(name='BodyText', fontSize=11, leading=15, textColor=HexColor("#2D3748")))
+    
+    story = []
+    
+    # Cover Page
+    story.append(Paragraph("🌅 Mer & Soleil – The Sea and The Sun", styles['CenterTitle']))
+    story.append(Paragraph("Mediterranean Fine Casual Dining Concept", styles['CenterTitle']))
+    story.append(Spacer(1, 40))
+    
+    # Concept & Positioning
+    story.append(Paragraph("Concept & Positioning", styles['SectionHeader']))
+    story.append(Paragraph("""Mer & Soleil is an elegant Mediterranean fine casual dining restaurant in Dubai. 
+    It offers a refined culinary journey across the Mediterranean capitals – Italy, France, Spain, Greece, Lebanon, Algeria, and Turkey – with a modern twist. 
+    The positioning is premium casual dining, targeting families, couples, and food lovers seeking authenticity and sophistication in a relaxed atmosphere.""", styles['BodyText']))
+    
+    # Design & Atmosphere
+    story.append(Paragraph("Design & Atmosphere", styles['SectionHeader']))
+    story.append(Paragraph("""Colors inspired by the sea and the sun: blue, beige, and golden hues. 
+    Natural wooden furniture with touches of white stone. 
+    Warm sunset-inspired lighting. 
+    Soft Mediterranean and jazz music to create a refined yet cozy mood.""", styles['BodyText']))
+    
+    # Menu Overview
+    story.append(Paragraph("Menu Overview", styles['SectionHeader']))
+    
+    menu_text = """
+    1. Starters & Mezze
+    - Hummus, Baba Ghanoush, Tabbouleh (Lebanon)
+    - Dolma Vine Leaves (Greece)
+    - Patatas Bravas, Garlic Shrimp (Spain)
+    - Bruschetta with Cherry Tomatoes & Basil (Italy)
+    
+    2. Salads
+    - Greek Salad with Feta & Olives
+    - Italian Caprese Salad
+    - Algerian Roasted Vegetable Salad
+    - Mer & Soleil Signature Salad
+    
+    3. Mains
+    - Seafood Paella (Spain)
+    - Grilled Seabass with Mediterranean Herbs (Greece)
+    - Truffle Cream Pasta or Pomodoro (Italy)
+    - Saffron Risotto with Shrimp
+    - Algerian Royal Couscous with Meat & Vegetables
+    - Mixed Grills (Lebanon & Turkey)
+    - Grilled Chicken with Lemon & Olive Sauce (Morocco)
+    
+    4. Flatbreads & Pizzas
+    - Margherita, Seafood, or Halloumi-Zaatar Pizza
+    - Turkish Pide with Cheese & Meat
+    
+    5. Desserts
+    - Tiramisu (Italy)
+    - Baklava with Pistachios (Turkey)
+    - Crème Brûlée (France)
+    - Lebanese Pistachio Mahalabia
+    - Seasonal Mediterranean Fruit Platter
+    
+    6. Beverages & Signature Drinks
+    - Fresh Juices
+    - Mediterranean Mocktails: Rosemary Lemonade, Pomegranate Mojito, Saffron Iced Tea
+    - Signature Arabic Drinks: Hamoud Boualem (Algeria)
+    - Italian Coffee (Espresso, Cappuccino)
+    - Mediterranean Herbal Tea
+    """
+    story.append(Paragraph(menu_text.replace("\n", "<br/>"), styles['BodyText']))
+    
+    # Closing
+    story.append(Paragraph("✨ Result", styles['SectionHeader']))
+    story.append(Paragraph("""Mer & Soleil – The Sea and The Sun will be a refined Mediterranean restaurant in Dubai – 
+    no shisha, only authentic food, drinks, and a complete sensory journey through design, ambiance, and taste.""", styles['BodyText']))
+    
+    doc.build(story)
+    return path
+
+# Button class
+class Button:
+    def __init__(self, x, y, width, height, text, color, hover_color):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.text = text
+        self.color = color
+        self.hover_color = hover_color
+        self.is_hovered = False
+        
+    def draw(self, surface):
+        color = self.hover_color if self.is_hovered else self.color
+        pygame.draw.rect(surface, color, self.rect, border_radius=10)
+        pygame.draw.rect(surface, COLORS["dark_blue"], self.rect, 2, border_radius=10)
+        
+        text_surf = body_font.render(self.text, True, COLORS["white"])
+        text_rect = text_surf.get_rect(center=self.rect.center)
+        surface.blit(text_surf, text_rect)
+        
+    def check_hover(self, pos):
+        self.is_hovered = self.rect.collidepoint(pos)
+        
+    def check_click(self, pos, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            return self.rect.collidepoint(pos)
+        return False
+
+# Content box with scroll
+class ScrollBox:
+    def __init__(self, x, y, width, height):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.content_height = 0
+        self.scroll_y = 0
+        self.max_scroll = 0
+        
+    def set_content_height(self, height):
+        self.content_height = height
+        self.max_scroll = max(0, height - self.rect.height)
+        
+    def scroll(self, amount):
+        self.scroll_y = max(0, min(self.max_scroll, self.scroll_y + amount))
+        
+    def draw(self, surface, content_surface):
+        # Create a subsurface for the scroll box
+        subsurface = surface.subsurface(self.rect)
+        subsurface.fill(COLORS["white"])
+        
+        # Draw the content
+        content_rect = pygame.Rect(0, -self.scroll_y, self.rect.width, self.content_height)
+        subsurface.blit(content_surface, content_rect)
+        
+        # Draw border
+        pygame.draw.rect(subsurface, COLORS["dark_blue"], (0, 0, self.rect.width, self.rect.height), 2, border_radius=5)
+        
+        # Draw scrollbar if needed
+        if self.content_height > self.rect.height:
+            scrollbar_height = max(30, self.rect.height * (self.rect.height / self.content_height))
+            scrollbar_pos = (self.scroll_y / self.max_scroll) * (self.rect.height - scrollbar_height)
+            
+            pygame.draw.rect(
+                subsurface, 
+                COLORS["light_blue"], 
+                (self.rect.width - 10, scrollbar_pos, 8, scrollbar_height),
+                border_radius=4
+            )
+
+# Create content for the preview
+def create_preview_content():
+    content_surface = pygame.Surface((550, 1500))
+    content_surface.fill(COLORS["white"])
+    
+    y_offset = 20
+    
+    # Title
+    title = title_font.render("🌅 Mer & Soleil – The Sea and The Sun", True, COLORS["dark_blue"])
+    content_surface.blit(title, (20, y_offset))
+    y_offset += 50
+    
+    subtitle = header_font.render("Mediterranean Fine Casual Dining Concept", True, COLORS["light_blue"])
+    content_surface.blit(subtitle, (20, y_offset))
+    y_offset += 60
+    
+    # Concept & Positioning
+    section = header_font.render("Concept & Positioning", True, COLORS["light_blue"])
+    content_surface.blit(section, (20, y_offset))
+    y_offset += 40
+    
+    concept_text = [
+        "Mer & Soleil is an elegant Mediterranean fine casual dining",
+        "restaurant in Dubai. It offers a refined culinary journey across",
+        "the Mediterranean capitals – Italy, France, Spain, Greece,",
+        "Lebanon, Algeria, and Turkey – with a modern twist.",
+        "The positioning is premium casual dining, targeting families,",
+        "couples, and food lovers seeking authenticity and",
+        "sophistication in a relaxed atmosphere."
+    ]
+    
+    for line in concept_text:
+        text = body_font.render(line, True, COLORS["text"])
+        content_surface.blit(text, (30, y_offset))
+        y_offset += 25
+    y_offset += 20
+    
+    # Design & Atmosphere
+    section = header_font.render("Design & Atmosphere", True, COLORS["light_blue"])
+    content_surface.blit(section, (20, y_offset))
+    y_offset += 40
+    
+    design_text = [
+        "Colors inspired by the sea and the sun: blue, beige, and golden hues.",
+        "Natural wooden furniture with touches of white stone.",
+        "Warm sunset-inspired lighting.",
+        "Soft Mediterranean and jazz music to create a refined yet cozy mood."
+    ]
+    
+    for line in design_text:
+        text = body_font.render(line, True, COLORS["text"])
+        content_surface.blit(text, (30, y_offset))
+        y_offset += 25
+    y_offset += 20
+    
+    # Menu Overview
+    section = header_font.render("Menu Overview", True, COLORS["light_blue"])
+    content_surface.blit(section, (20, y_offset))
+    y_offset += 40
+    
+    menu_items = [
+        "1. Starters & Mezze",
+        "- Hummus, Baba Ghanoush, Tabbouleh (Lebanon)",
+        "- Dolma Vine Leaves (Greece)",
+        "- Patatas Bravas, Garlic Shrimp (Spain)",
+        "- Bruschetta with Cherry Tomatoes & Basil (Italy)",
+        "",
+        "2. Salads",
+        "- Greek Salad with Feta & Olives",
+        "- Italian Caprese Salad",
+        "- Algerian Roasted Vegetable Salad",
+        "- Mer & Soleil Signature Salad",
+        "",
+        "3. Mains",
+        "- Seafood Paella (Spain)",
+        "- Grilled Seabass with Mediterranean Herbs (Greece)",
+        "- Truffle Cream Pasta or Pomodoro (Italy)",
+        "- Saffron Risotto with Shrimp",
+        "- Algerian Royal Couscous with Meat & Vegetables",
+        "- Mixed Grills (Lebanon & Turkey)",
+        "- Grilled Chicken with Lemon & Olive Sauce (Morocco)",
+        "",
+        "4. Flatbreads & Pizzas",
+        "- Margherita, Seafood, or Halloumi-Zaatar Pizza",
+        "- Turkish Pide with Cheese & Meat",
+        "",
+        "5. Desserts",
+        "- Tiramisu (Italy)",
+        "- Baklava with Pistachios (Turkey)",
+        "- Crème Brûlée (France)",
+        "- Lebanese Pistachio Mahalabia",
+        "- Seasonal Mediterranean Fruit Platter",
+        "",
+        "6. Beverages & Signature Drinks",
+        "- Fresh Juices",
+        "- Mediterranean Mocktails: Rosemary Lemonade, Pomegranate Mojito, Saffron Iced Tea",
+        "- Signature Arabic Drinks: Hamoud Boualem (Algeria)",
+        "- Italian Coffee (Espresso, Cappuccino)",
+        "- Mediterranean Herbal Tea"
+    ]
+    
+    for item in menu_items:
+        if item.startswith("1.") or item.startswith("2.") or item.startswith("3.") or item.startswith("4.") or item.startswith("5.") or item.startswith("6."):
+            text = body_font.render(item, True, COLORS["dark_blue"])
+        elif item.startswith("-"):
+            text = small_font.render(item, True, COLORS["text"])
+        else:
+            text = small_font.render(item, True, COLORS["white"])
+        content_surface.blit(text, (30, y_offset))
+        y_offset += 20
+    y_offset += 20
+    
+    # Closing
+    section = header_font.render("✨ Result", True, COLORS["light_blue"])
+    content_surface.blit(section, (20, y_offset))
+    y_offset += 40
+    
+    result_text = [
+        "Mer & Soleil – The Sea and The Sun will be a refined Mediterranean",
+        "restaurant in Dubai – no shisha, only authentic food, drinks,",
+        "and a complete sensory journey through design, ambiance, and taste."
+    ]
+    
+    for line in result_text:
+        text = body_font.render(line, True, COLORS["text"])
+        content_surface.blit(text, (30, y_offset))
+        y_offset += 25
+    
+    return content_surface, y_offset
+
+# Create UI elements
+generate_button = Button(WIDTH//2 - 100, HEIGHT - 80, 200, 50, "Generate PDF", COLORS["button"], COLORS["button_hover"])
+scroll_box = ScrollBox(50, 120, 800, 450)
+content_surface, content_height = create_preview_content()
+scroll_box.set_content_height(content_height)
+
+# Main loop
+clock = pygame.time.Clock()
+running = True
+
+while running:
+    mouse_pos = pygame.mouse.get_pos()
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if generate_button.check_click(mouse_pos, event):
+                pdf_path = create_pdf("Mer_et_Soleil_Concept.pdf")
+                print(f"PDF generated at: {os.path.abspath(pdf_path)}")
+            
+            # Handle scrolling
+            if scroll_box.rect.collidepoint(mouse_pos):
+                if event.button == 4:  # Scroll up
+                    scroll_box.scroll(-20)
+                elif event.button == 5:  # Scroll down
+                    scroll_box.scroll(20)
+    
+    # Update button state
+    generate_button.check_hover(mouse_pos)
+    
+    # Draw everything
+    screen.fill(COLORS["background"])
+    
+    # Draw header
+    pygame.draw.rect(screen, COLORS["dark_blue"], (0, 0, WIDTH, 80))
+    title = title_font.render("Mer & Soleil - PDF Generator", True, COLORS["white"])
+    screen.blit(title, (WIDTH//2 - title.get_width()//2, 25))
+    
+    # Draw instructions
+    instructions = body_font.render("Preview of the PDF content. Scroll to see more. Click to generate the PDF.", True, COLORS["text"])
+    screen.blit(instructions, (WIDTH//2 - instructions.get_width()//2, 90))
+    
+    # Draw scroll box with content
+    scroll_box.draw(screen, content_surface)
+    
+    # Draw button
+    generate_button.draw(screen)
+    
+    # Draw footer
+    pygame.draw.rect(screen, COLORS["sand"], (0, HEIGHT - 30, WIDTH, 30))
+    footer_text = small_font.render("© 2023 Mer & Soleil Restaurant Concept", True, COLORS["dark_blue"])
+    screen.blit(footer_text, (WIDTH//2 - footer_text.get_width()//2, HEIGHT - 25))
+    
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()
+sys.exit()
